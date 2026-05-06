@@ -1,29 +1,55 @@
 import sys
+import os
+
+commands = {
+    "exit": lambda userInput: sys.exit(0),
+    "echo": lambda userInput: print(userInput[5:]),
+    "type": lambda userInput: handle_type(userInput),
+}
+
+def handle_type(userInput):
+    parts = userInput.split()
+
+    if len(parts) < 2:
+        return
+
+    cmd = parts[1]
+
+   
+    if cmd in commands:
+        print(f"{cmd} is a shell builtin")
+        return
+
+   
+    path_dirs = os.environ.get("PATH", "").split(":")
+
+    for directory in path_dirs:
+        full_path = os.path.join(directory, cmd)
+
+        if os.path.isfile(full_path) and os.access(full_path, os.X_OK):
+            print(f"{cmd} is {full_path}")
+            return
+
+    print(f"{cmd}: not found")
+
 
 def main():
-    builtins = ["echo", "exit", "type"]
-
     while True:
         sys.stdout.write("$ ")
 
-        command = input()
+        userInput = input()
+        parts = userInput.split()
 
-        if command == "exit":
-            break
+        if not parts:
+            continue
 
-        elif command.startswith("echo"):
-            print(command[5:])
+        cmd = parts[0]
 
-        elif command.startswith("type"):
-            cmd = command.split()[1]
-
-            if cmd in builtins:
-                print(f"{cmd} is a shell builtin")
-            else:
-                print(f"{cmd}: not found")
-
+        if cmd in commands:
+            commands[cmd](userInput)
         else:
-            print(f"{command}: command not found")
+            print(f"{userInput}: command not found")
+
 
 if __name__ == "__main__":
     main()
