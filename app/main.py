@@ -1,11 +1,24 @@
 import sys
 import os
+import subprocess
 
 commands = {
     "exit": lambda userInput: sys.exit(0),
     "echo": lambda userInput: print(userInput[5:]),
     "type": lambda userInput: handle_type(userInput),
 }
+
+def find_executable(cmd):
+    path_dirs = os.environ.get("PATH", "").split(":")
+
+    for directory in path_dirs:
+        full_path = os.path.join(directory, cmd)
+
+        if os.path.isfile(full_path) and os.access(full_path, os.X_OK):
+            return full_path
+
+    return None
+
 
 def handle_type(userInput):
     parts = userInput.split()
@@ -15,22 +28,16 @@ def handle_type(userInput):
 
     cmd = parts[1]
 
-   
     if cmd in commands:
         print(f"{cmd} is a shell builtin")
         return
 
-   
-    path_dirs = os.environ.get("PATH", "").split(":")
+    path = find_executable(cmd)
 
-    for directory in path_dirs:
-        full_path = os.path.join(directory, cmd)
-
-        if os.path.isfile(full_path) and os.access(full_path, os.X_OK):
-            print(f"{cmd} is {full_path}")
-            return
-
-    print(f"{cmd}: not found")
+    if path:
+        print(f"{cmd} is {path}")
+    else:
+        print(f"{cmd}: not found")
 
 
 def main():
@@ -45,10 +52,20 @@ def main():
 
         cmd = parts[0]
 
+        
         if cmd in commands:
             commands[cmd](userInput)
+
         else:
-            print(f"{userInput}: command not found")
+            path = find_executable(cmd)
+
+            if path:
+                try:
+                    subprocess.run([path] + parts[1:])
+                except Exception as e:
+                    print(f"Error running command: {e}")
+            else:
+                print(f"{cmd}: command not found")
 
 
 if __name__ == "__main__":
