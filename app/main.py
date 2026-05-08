@@ -6,6 +6,7 @@ commands = {
     "exit": lambda userInput: sys.exit(0),
     "echo": lambda userInput: print(userInput[5:]),
     "type": lambda userInput: handle_type(userInput),
+    "pwd" : lambda userInput: print(os.getcwd())
 }
 
 def find_executable(cmd):
