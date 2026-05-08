@@ -67,6 +67,16 @@ def main():
 
         userInput = input()
         parts = shlex.split(userInput)
+        
+        if ">" in parts:
+            idx = parts.index(">")
+            stdout_target = parts[idx + 1]
+            parts = parts[:idx]
+            
+        elif "1>" in parts:
+            idx = parts.index("1>")
+            stdout_target = parts[idx + 1]
+            parts = parts[:idx]
 
         if not parts:
             continue
