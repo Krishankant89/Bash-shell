@@ -6,8 +6,23 @@ commands = {
     "exit": lambda userInput: sys.exit(0),
     "echo": lambda userInput: print(userInput[5:]),
     "type": lambda userInput: handle_type(userInput),
-    "pwd" : lambda userInput: print(os.getcwd())
+    "pwd" : lambda userInput: print(os.getcwd()),
+    "cd" : lambda userInput: handle_cd(userInput),
 }
+
+
+def handle_cd(userInput):
+    parts = userInput.split()
+
+    if len(parts) < 2:
+        return
+
+    path = parts[1]
+
+    if os.path.isdir(path):
+        os.chdir(path)
+    else:
+        print(f"cd: {path}: No such file or directory")
 
 def find_executable(cmd):
     path_dirs = os.environ.get("PATH", "").split(":")
