@@ -3,31 +3,34 @@ import os
 import subprocess
 import shlex
 
-commands = {
-    "exit": lambda userInput: sys.exit(0),
-    "echo": lambda userInput: print(" ".join(shlex.split(userInput)[1:])),
-    # "echo": lambda userInput: print(userInput[5:]),
-    "type": lambda userInput: handle_type(userInput),
-    "pwd" : lambda userInput: print(os.getcwd()),
-    "cd" : lambda userInput: handle_cd(userInput),
-}
+
+def handle_exit(parts, output_stream):
+    sys.exit(0)
 
 
-def handle_cd(userInput):
-    parts = shlex.split(userInput)
+def handle_echo(parts, output_stream):
+    print(" ".join(parts[1:]), file=output_stream)
 
+
+def handle_pwd(parts, output_stream):
+    print(os.getcwd(), file=output_stream)
+
+
+def handle_cd(parts, output_stream):
     if len(parts) < 2:
         return
 
     path = parts[1]
-    #handle "~"
-    
+
+    # Handle "~"
     if path == "~":
         path = os.environ.get("HOME")
+
     if os.path.isdir(path):
         os.chdir(path)
     else:
-        print(f"cd: {path}: No such file or directory")
+        print(f"cd: {parts[1]}: No such file or directory")
+
 
 def find_executable(cmd):
     path_dirs = os.environ.get("PATH", "").split(":")
@@ -41,38 +44,56 @@ def find_executable(cmd):
     return None
 
 
-def handle_type(userInput):
-    parts = shlex.split(userInput)
-
+def handle_type(parts, output_stream):
     if len(parts) < 2:
         return
 
     cmd = parts[1]
 
     if cmd in commands:
-        print(f"{cmd} is a shell builtin")
+        print(f"{cmd} is a shell builtin", file=output_stream)
         return
 
     path = find_executable(cmd)
 
     if path:
-        print(f"{cmd} is {path}")
+        print(f"{cmd} is {path}", file=output_stream)
     else:
-        print(f"{cmd}: not found")
+        print(f"{cmd}: not found", file=output_stream)
+
+
+commands = {
+    "exit": handle_exit,
+    "echo": handle_echo,
+    "type": handle_type,
+    "pwd": handle_pwd,
+    "cd": handle_cd,
+}
 
 
 def main():
     while True:
         sys.stdout.write("$ ")
+        sys.stdout.flush()
 
-        userInput = input()
+        try:
+            userInput = input()
+        except EOFError:
+            break
+
         parts = shlex.split(userInput)
-        
+
+        if not parts:
+            continue
+
+        # Redirection handling
+        stdout_target = None
+
         if ">" in parts:
             idx = parts.index(">")
             stdout_target = parts[idx + 1]
             parts = parts[:idx]
-            
+
         elif "1>" in parts:
             idx = parts.index("1>")
             stdout_target = parts[idx + 1]
@@ -83,31 +104,36 @@ def main():
 
         cmd = parts[0]
 
-        
-        if cmd in commands:
-            commands[cmd](userInput)
+        output_stream = sys.stdout
 
-        else:
-            path = find_executable(cmd)
+        if stdout_target:
+            output_stream = open(stdout_target, "w")
 
-            if path:
-                try:
-                    if stdout_target:
-                        with open(stdout_target, "w") as f:
-                            subprocess.run(
-                                [cmd] + parts[1:],
-                                executable = path,
-                                stdout = f
-                            )
-                    else:
-                        subprocess.run(
-                            [cmd] + parts[1:],
-                            executable=path
-                        )
-                except Exception as e:
-                    print(f"Error running command: {e}")
+        try:
+            # Builtin commands
+            if cmd in commands:
+                commands[cmd](parts, output_stream)
+
+            # External commands
             else:
-                print(f"{cmd}: command not found")
+                # Handle quoted executable paths
+                if os.path.isfile(cmd) and os.access(cmd, os.X_OK):
+                    path = cmd
+                else:
+                    path = find_executable(cmd)
+
+                if path:
+                    subprocess.run(
+                        [cmd] + parts[1:],
+                        executable=path,
+                        stdout=output_stream
+                    )
+                else:
+                    print(f"{cmd}: command not found")
+
+        finally:
+            if stdout_target:
+                output_stream.close()
 
 
 if __name__ == "__main__":
