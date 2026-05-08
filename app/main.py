@@ -1,10 +1,12 @@
 import sys
 import os
 import subprocess
+import shlex
 
 commands = {
     "exit": lambda userInput: sys.exit(0),
-    "echo": lambda userInput: print(userInput[5:]),
+    "echo": lambda userInput: print(" ".join(shelx.split(userInput)[1:])),
+    # "echo": lambda userInput: print(userInput[5:]),
     "type": lambda userInput: handle_type(userInput),
     "pwd" : lambda userInput: print(os.getcwd()),
     "cd" : lambda userInput: handle_cd(userInput),
@@ -12,7 +14,7 @@ commands = {
 
 
 def handle_cd(userInput):
-    parts = userInput.split()
+    parts = shlex.split(userInput)
 
     if len(parts) < 2:
         return
@@ -40,7 +42,7 @@ def find_executable(cmd):
 
 
 def handle_type(userInput):
-    parts = userInput.split()
+    parts = shlex.split(userInput)
 
     if len(parts) < 2:
         return
@@ -64,7 +66,7 @@ def main():
         sys.stdout.write("$ ")
 
         userInput = input()
-        parts = userInput.split()
+        parts = shlex.split(userInput)
 
         if not parts:
             continue
