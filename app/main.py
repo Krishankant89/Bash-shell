@@ -79,7 +79,7 @@ commands = {
 }
 
 autocomplete_commands = ("echo", "exit")
-completion_cache_text = None
+completion_cache_key = None
 completion_cache_matches = []
 
 
@@ -106,22 +106,55 @@ def find_matching_executables(prefix):
     return matches
 
 
+def find_matching_paths(partial_path):
+    if "/" in partial_path:
+        directory_path, prefix = partial_path.rsplit("/", 1)
+        search_directory = directory_path if directory_path else "."
+        completion_prefix = f"{directory_path}/"
+    else:
+        prefix = partial_path
+        search_directory = "."
+        completion_prefix = ""
+
+    matches = set()
+
+    try:
+        with os.scandir(search_directory) as entries:
+            for entry in entries:
+                if entry.name.startswith(prefix) and entry.is_file():
+                    matches.add(f"{completion_prefix}{entry.name}")
+    except OSError:
+        return []
+
+    return sorted(matches)
+
+
 def complete_command(text, state):
-    global completion_cache_text
+    global completion_cache_key
     global completion_cache_matches
 
-    if readline is None or readline.get_begidx() != 0:
+    if readline is None:
         return None
 
-    if state == 0 or text != completion_cache_text:
-        builtin_matches = {
-            cmd
-            for cmd in autocomplete_commands
-            if cmd.startswith(text)
-        }
-        executable_matches = find_matching_executables(text)
-        completion_cache_text = text
-        completion_cache_matches = sorted(builtin_matches | executable_matches)
+    line_buffer = readline.get_line_buffer()
+    begin_index = readline.get_begidx()
+    completion_key = (line_buffer, begin_index, text)
+
+    if state == 0 or completion_key != completion_cache_key:
+        completion_cache_key = completion_key
+
+        if begin_index == 0:
+            builtin_matches = {
+                cmd
+                for cmd in autocomplete_commands
+                if cmd.startswith(text)
+            }
+            executable_matches = find_matching_executables(text)
+            completion_cache_matches = sorted(
+                builtin_matches | executable_matches
+            )
+        else:
+            completion_cache_matches = find_matching_paths(text)
 
     if state < len(completion_cache_matches):
         match = completion_cache_matches[state]
