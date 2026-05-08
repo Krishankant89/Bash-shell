@@ -18,7 +18,10 @@ def handle_cd(userInput):
         return
 
     path = parts[1]
-
+    #handle "~"
+    
+    if path == "~":
+        path = os.environ.get("HOME")
     if os.path.isdir(path):
         os.chdir(path)
     else:
