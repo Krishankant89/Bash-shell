@@ -138,11 +138,8 @@ def main():
         readline.set_completer(complete_command)
 
     while True:
-        sys.stdout.write("$ ")
-        sys.stdout.flush()
-
         try:
-            userInput = input()
+            userInput = input("$ ")
         except EOFError:
             break
 
