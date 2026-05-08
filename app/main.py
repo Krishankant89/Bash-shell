@@ -3,6 +3,11 @@ import os
 import subprocess
 import shlex
 
+try:
+    import readline
+except ImportError:
+    readline = None
+
 
 def handle_exit(parts, stdout_stream, stderr_stream):
     sys.exit(0)
@@ -73,8 +78,30 @@ commands = {
     "cd": handle_cd,
 }
 
+autocomplete_commands = ("echo", "exit")
+
+
+def complete_builtin_commands(text, state):
+    if readline is None or readline.get_begidx() != 0:
+        return None
+
+    matches = [
+        f"{cmd} "
+        for cmd in autocomplete_commands
+        if cmd.startswith(text)
+    ]
+
+    if state < len(matches):
+        return matches[state]
+
+    return None
+
 
 def main():
+    if readline is not None:
+        readline.parse_and_bind("tab: complete")
+        readline.set_completer(complete_builtin_commands)
+
     while True:
         sys.stdout.write("$ ")
         sys.stdout.flush()
