@@ -41,7 +41,7 @@ def handle_cd(parts, stdout_stream, stderr_stream):
 
 
 def find_executable(cmd):
-    path_dirs = os.environ.get("PATH", "").split(":")
+    path_dirs = os.environ.get("PATH", "").split(os.pathsep)
 
     for directory in path_dirs:
         full_path = os.path.join(directory, cmd)
@@ -81,15 +81,40 @@ commands = {
 autocomplete_commands = ("echo", "exit")
 
 
-def complete_builtin_commands(text, state):
+def find_matching_executables(prefix):
+    matches = set()
+    path_dirs = os.environ.get("PATH", "").split(os.pathsep)
+
+    for directory in path_dirs:
+        if not directory or not os.path.isdir(directory):
+            continue
+
+        try:
+            with os.scandir(directory) as entries:
+                for entry in entries:
+                    if (
+                        entry.name.startswith(prefix)
+                        and entry.is_file()
+                        and os.access(entry.path, os.X_OK)
+                    ):
+                        matches.add(entry.name)
+        except OSError:
+            continue
+
+    return matches
+
+
+def complete_command(text, state):
     if readline is None or readline.get_begidx() != 0:
         return None
 
-    matches = [
-        f"{cmd} "
+    builtin_matches = {
+        cmd
         for cmd in autocomplete_commands
         if cmd.startswith(text)
-    ]
+    }
+    executable_matches = find_matching_executables(text)
+    matches = [f"{name} " for name in sorted(builtin_matches | executable_matches)]
 
     if state < len(matches):
         return matches[state]
@@ -100,7 +125,7 @@ def complete_builtin_commands(text, state):
 def main():
     if readline is not None:
         readline.parse_and_bind("tab: complete")
-        readline.set_completer(complete_builtin_commands)
+        readline.set_completer(complete_command)
 
     while True:
         sys.stdout.write("$ ")
