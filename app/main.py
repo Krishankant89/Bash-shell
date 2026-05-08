@@ -92,7 +92,18 @@ def main():
 
             if path:
                 try:
-                    subprocess.run([cmd] + parts[1:], executable=path)
+                    if stdout_target:
+                        with open(stdout_target, "w") as f:
+                            subprocess.run(
+                                [cmd] + parts[1:],
+                                executable = path,
+                                stdout = f
+                            )
+                    else:
+                        subprocess.run(
+                            [cmd] + parts[1:],
+                            executable=path
+                        )
                 except Exception as e:
                     print(f"Error running command: {e}")
             else:
