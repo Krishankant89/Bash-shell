@@ -79,6 +79,8 @@ commands = {
 }
 
 autocomplete_commands = ("echo", "exit")
+completion_cache_text = None
+completion_cache_matches = []
 
 
 def find_matching_executables(prefix):
@@ -105,19 +107,27 @@ def find_matching_executables(prefix):
 
 
 def complete_command(text, state):
+    global completion_cache_text
+    global completion_cache_matches
+
     if readline is None or readline.get_begidx() != 0:
         return None
 
-    builtin_matches = {
-        cmd
-        for cmd in autocomplete_commands
-        if cmd.startswith(text)
-    }
-    executable_matches = find_matching_executables(text)
-    matches = [f"{name} " for name in sorted(builtin_matches | executable_matches)]
+    if state == 0 or text != completion_cache_text:
+        builtin_matches = {
+            cmd
+            for cmd in autocomplete_commands
+            if cmd.startswith(text)
+        }
+        executable_matches = find_matching_executables(text)
+        completion_cache_text = text
+        completion_cache_matches = sorted(builtin_matches | executable_matches)
 
-    if state < len(matches):
-        return matches[state]
+    if state < len(completion_cache_matches):
+        match = completion_cache_matches[state]
+        if len(completion_cache_matches) == 1:
+            return f"{match} "
+        return match
 
     return None
 
