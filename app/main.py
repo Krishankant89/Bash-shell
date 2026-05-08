@@ -138,7 +138,12 @@ def complete_command(text, state):
 
     line_buffer = readline.get_line_buffer()
     begin_index = readline.get_begidx()
-    completion_key = (line_buffer, begin_index, text)
+    end_index = readline.get_endidx()
+
+    token_start = line_buffer.rfind(" ", 0, end_index) + 1
+    token = line_buffer[token_start:end_index]
+    prefix_before_text = token[:-len(text)] if text else token
+    completion_key = (line_buffer, begin_index, end_index, text)
 
     if state == 0 or completion_key != completion_cache_key:
         completion_cache_key = completion_key
@@ -154,7 +159,12 @@ def complete_command(text, state):
                 builtin_matches | executable_matches
             )
         else:
-            completion_cache_matches = find_matching_paths(text)
+            path_matches = find_matching_paths(token)
+            completion_cache_matches = sorted(
+                match[len(prefix_before_text):]
+                for match in path_matches
+                if match.startswith(prefix_before_text)
+            )
 
     if state < len(completion_cache_matches):
         match = completion_cache_matches[state]
