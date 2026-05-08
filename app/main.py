@@ -121,7 +121,12 @@ def find_matching_paths(partial_path):
     try:
         with os.scandir(search_directory) as entries:
             for entry in entries:
-                if entry.name.startswith(prefix) and entry.is_file():
+                if not entry.name.startswith(prefix):
+                    continue
+
+                if entry.is_dir():
+                    matches.add(f"{completion_prefix}{entry.name}/")
+                elif entry.is_file():
                     matches.add(f"{completion_prefix}{entry.name}")
     except OSError:
         return []
@@ -169,6 +174,8 @@ def complete_command(text, state):
     if state < len(completion_cache_matches):
         match = completion_cache_matches[state]
         if len(completion_cache_matches) == 1:
+            if match.endswith("/"):
+                return match
             return f"{match} "
         return match
 
