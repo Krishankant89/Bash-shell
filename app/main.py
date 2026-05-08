@@ -4,19 +4,19 @@ import subprocess
 import shlex
 
 
-def handle_exit(parts, output_stream):
+def handle_exit(parts, stdout_stream, stderr_stream):
     sys.exit(0)
 
 
-def handle_echo(parts, output_stream):
-    print(" ".join(parts[1:]), file=output_stream)
+def handle_echo(parts, stdout_stream, stderr_stream):
+    print(" ".join(parts[1:]), file=stdout_stream)
 
 
-def handle_pwd(parts, output_stream):
-    print(os.getcwd(), file=output_stream)
+def handle_pwd(parts, stdout_stream, stderr_stream):
+    print(os.getcwd(), file=stdout_stream)
 
 
-def handle_cd(parts, output_stream):
+def handle_cd(parts, stdout_stream, stderr_stream):
     if len(parts) < 2:
         return
 
@@ -29,7 +29,10 @@ def handle_cd(parts, output_stream):
     if os.path.isdir(path):
         os.chdir(path)
     else:
-        print(f"cd: {parts[1]}: No such file or directory")
+        print(
+            f"cd: {parts[1]}: No such file or directory",
+            file=stderr_stream
+        )
 
 
 def find_executable(cmd):
@@ -44,22 +47,22 @@ def find_executable(cmd):
     return None
 
 
-def handle_type(parts, output_stream):
+def handle_type(parts, stdout_stream, stderr_stream):
     if len(parts) < 2:
         return
 
     cmd = parts[1]
 
     if cmd in commands:
-        print(f"{cmd} is a shell builtin", file=output_stream)
+        print(f"{cmd} is a shell builtin", file=stdout_stream)
         return
 
     path = find_executable(cmd)
 
     if path:
-        print(f"{cmd} is {path}", file=output_stream)
+        print(f"{cmd} is {path}", file=stdout_stream)
     else:
-        print(f"{cmd}: not found", file=output_stream)
+        print(f"{cmd}: not found", file=stdout_stream)
 
 
 commands = {
@@ -86,8 +89,12 @@ def main():
         if not parts:
             continue
 
+        # -------------------------
         # Redirection handling
+        # -------------------------
+
         stdout_target = None
+        stderr_target = None
 
         if ">" in parts:
             idx = parts.index(">")
@@ -99,24 +106,43 @@ def main():
             stdout_target = parts[idx + 1]
             parts = parts[:idx]
 
+        elif "2>" in parts:
+            idx = parts.index("2>")
+            stderr_target = parts[idx + 1]
+            parts = parts[:idx]
+
         if not parts:
             continue
 
         cmd = parts[0]
 
-        output_stream = sys.stdout
+        stdout_stream = sys.stdout
+        stderr_stream = sys.stderr
 
         if stdout_target:
-            output_stream = open(stdout_target, "w")
+            stdout_stream = open(stdout_target, "w")
+
+        if stderr_target:
+            stderr_stream = open(stderr_target, "w")
 
         try:
+            # -------------------------
             # Builtin commands
-            if cmd in commands:
-                commands[cmd](parts, output_stream)
+            # -------------------------
 
+            if cmd in commands:
+                commands[cmd](
+                    parts,
+                    stdout_stream,
+                    stderr_stream
+                )
+
+            # -------------------------
             # External commands
+            # -------------------------
+
             else:
-                # Handle quoted executable paths
+                # Handle direct executable path
                 if os.path.isfile(cmd) and os.access(cmd, os.X_OK):
                     path = cmd
                 else:
@@ -126,14 +152,21 @@ def main():
                     subprocess.run(
                         [cmd] + parts[1:],
                         executable=path,
-                        stdout=output_stream
+                        stdout=stdout_stream,
+                        stderr=stderr_stream
                     )
                 else:
-                    print(f"{cmd}: command not found")
+                    print(
+                        f"{cmd}: command not found",
+                        file=stderr_stream
+                    )
 
         finally:
             if stdout_target:
-                output_stream.close()
+                stdout_stream.close()
+
+            if stderr_target:
+                stderr_stream.close()
 
 
 if __name__ == "__main__":
