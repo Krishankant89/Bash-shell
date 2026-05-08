@@ -96,19 +96,47 @@ def main():
         stdout_target = None
         stderr_target = None
 
+        stdout_mode = "w"
+        stderr_mode = "w"
+
+        # stdout overwrite
         if ">" in parts:
             idx = parts.index(">")
             stdout_target = parts[idx + 1]
+            stdout_mode = "w"
             parts = parts[:idx]
 
         elif "1>" in parts:
             idx = parts.index("1>")
             stdout_target = parts[idx + 1]
+            stdout_mode = "w"
             parts = parts[:idx]
 
+        # stdout append
+        elif ">>" in parts:
+            idx = parts.index(">>")
+            stdout_target = parts[idx + 1]
+            stdout_mode = "a"
+            parts = parts[:idx]
+
+        elif "1>>" in parts:
+            idx = parts.index("1>>")
+            stdout_target = parts[idx + 1]
+            stdout_mode = "a"
+            parts = parts[:idx]
+
+        # stderr overwrite
         elif "2>" in parts:
             idx = parts.index("2>")
             stderr_target = parts[idx + 1]
+            stderr_mode = "w"
+            parts = parts[:idx]
+
+        # stderr append
+        elif "2>>" in parts:
+            idx = parts.index("2>>")
+            stderr_target = parts[idx + 1]
+            stderr_mode = "a"
             parts = parts[:idx]
 
         if not parts:
@@ -120,10 +148,10 @@ def main():
         stderr_stream = sys.stderr
 
         if stdout_target:
-            stdout_stream = open(stdout_target, "w")
+            stdout_stream = open(stdout_target, stdout_mode)
 
         if stderr_target:
-            stderr_stream = open(stderr_target, "w")
+            stderr_stream = open(stderr_target, stderr_mode)
 
         try:
             # -------------------------
