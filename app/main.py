@@ -5,7 +5,7 @@ import shlex
 
 commands = {
     "exit": lambda userInput: sys.exit(0),
-    "echo": lambda userInput: print(" ".join(shelx.split(userInput)[1:])),
+    "echo": lambda userInput: print(" ".join(shlex.split(userInput)[1:])),
     # "echo": lambda userInput: print(userInput[5:]),
     "type": lambda userInput: handle_type(userInput),
     "pwd" : lambda userInput: print(os.getcwd()),
