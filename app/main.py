@@ -166,10 +166,15 @@ def find_matching_paths(partial_path):
     return sorted(matches)
 
 
-def run_registered_completer(script_path):
+def run_registered_completer(
+    script_path,
+    command_name,
+    current_word,
+    previous_word
+):
     try:
         result = subprocess.run(
-            [script_path],
+            [script_path, command_name, current_word, previous_word],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             text=True,
@@ -222,15 +227,19 @@ def complete_command(text, state):
             except ValueError:
                 command_prefix_parts = []
 
-            if len(command_prefix_parts) == 1:
+            if command_prefix_parts:
                 command_name = command_prefix_parts[0]
+                previous_word = command_prefix_parts[-1]
                 completer_script = completion_specs.get(command_name)
             else:
                 completer_script = None
 
             if completer_script is not None:
                 completer_matches = run_registered_completer(
-                    completer_script
+                    completer_script,
+                    command_name,
+                    token,
+                    previous_word
                 )
                 completion_cache_matches = sorted(
                     match[len(prefix_before_text):]
