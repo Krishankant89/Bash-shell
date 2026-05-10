@@ -106,6 +106,10 @@ def handle_complete(parts, stdout_stream, stderr_stream):
     return
 
 
+def handle_jobs(parts, stdout_stream, stderr_stream):
+    return
+
+
 commands = {
     "exit": handle_exit,
     "echo": handle_echo,
@@ -113,6 +117,7 @@ commands = {
     "pwd": handle_pwd,
     "cd": handle_cd,
     "complete": handle_complete,
+    "jobs": handle_jobs,
 }
 
 autocomplete_commands = ("echo", "exit")
