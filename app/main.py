@@ -70,12 +70,17 @@ def handle_type(parts, stdout_stream, stderr_stream):
         print(f"{cmd}: not found", file=stdout_stream)
 
 
+def handle_complete(parts, stdout_stream, stderr_stream):
+    return
+
+
 commands = {
     "exit": handle_exit,
     "echo": handle_echo,
     "type": handle_type,
     "pwd": handle_pwd,
     "cd": handle_cd,
+    "complete": handle_complete,
 }
 
 autocomplete_commands = ("echo", "exit")
