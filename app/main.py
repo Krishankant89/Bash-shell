@@ -71,6 +71,11 @@ def handle_type(parts, stdout_stream, stderr_stream):
 
 
 def handle_complete(parts, stdout_stream, stderr_stream):
+    if len(parts) >= 3 and parts[1] == "-p":
+        print(
+            f"complete: {parts[2]}: no completion specification",
+            file=stderr_stream
+        )
     return
 
 
