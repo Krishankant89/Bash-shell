@@ -70,11 +70,33 @@ def handle_type(parts, stdout_stream, stderr_stream):
         print(f"{cmd}: not found", file=stdout_stream)
 
 
+completion_specs = {}
+
+
 def handle_complete(parts, stdout_stream, stderr_stream):
-    if len(parts) >= 3 and parts[1] == "-p":
+    if len(parts) < 2:
+        return
+
+    if parts[1] == "-C" and len(parts) >= 4:
+        completer_script = parts[2]
+        command_name = parts[3]
+        completion_specs[command_name] = completer_script
+        return
+
+    if parts[1] == "-p" and len(parts) >= 3:
+        command_name = parts[2]
+        completer_script = completion_specs.get(command_name)
+
+        if completer_script is None:
+            print(
+                f"complete: {command_name}: no completion specification",
+                file=stderr_stream
+            )
+            return
+
         print(
-            f"complete: {parts[2]}: no completion specification",
-            file=stderr_stream
+            f"complete -C '{completer_script}' {command_name}",
+            file=stdout_stream
         )
     return
 
