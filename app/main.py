@@ -166,6 +166,25 @@ def find_matching_paths(partial_path):
     return sorted(matches)
 
 
+def run_registered_completer(script_path):
+    try:
+        result = subprocess.run(
+            [script_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            check=False
+        )
+    except OSError:
+        return []
+
+    return [
+        line
+        for line in result.stdout.splitlines()
+        if line
+    ]
+
+
 def complete_command(text, state):
     global completion_cache_key
     global completion_cache_matches
@@ -196,12 +215,35 @@ def complete_command(text, state):
                 builtin_matches | executable_matches
             )
         else:
-            path_matches = find_matching_paths(token)
-            completion_cache_matches = sorted(
-                match[len(prefix_before_text):]
-                for match in path_matches
-                if match.startswith(prefix_before_text)
-            )
+            try:
+                command_prefix_parts = shlex.split(
+                    line_buffer[:token_start]
+                )
+            except ValueError:
+                command_prefix_parts = []
+
+            if len(command_prefix_parts) == 1:
+                command_name = command_prefix_parts[0]
+                completer_script = completion_specs.get(command_name)
+            else:
+                completer_script = None
+
+            if completer_script is not None:
+                completer_matches = run_registered_completer(
+                    completer_script
+                )
+                completion_cache_matches = sorted(
+                    match[len(prefix_before_text):]
+                    for match in completer_matches
+                    if match.startswith(prefix_before_text)
+                )
+            else:
+                path_matches = find_matching_paths(token)
+                completion_cache_matches = sorted(
+                    match[len(prefix_before_text):]
+                    for match in path_matches
+                    if match.startswith(prefix_before_text)
+                )
 
     if state < len(completion_cache_matches):
         match = completion_cache_matches[state]
