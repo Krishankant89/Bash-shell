@@ -83,6 +83,11 @@ def handle_complete(parts, stdout_stream, stderr_stream):
         completion_specs[command_name] = completer_script
         return
 
+    if parts[1] == "-r" and len(parts) >= 3:
+        command_name = parts[2]
+        completion_specs.pop(command_name, None)
+        return
+
     if parts[1] == "-p" and len(parts) >= 3:
         command_name = parts[2]
         completer_script = completion_specs.get(command_name)
