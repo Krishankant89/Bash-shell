@@ -170,15 +170,22 @@ def run_registered_completer(
     script_path,
     command_name,
     current_word,
-    previous_word
+    previous_word,
+    comp_line,
+    comp_point
 ):
+    completer_env = os.environ.copy()
+    completer_env["COMP_LINE"] = comp_line
+    completer_env["COMP_POINT"] = str(comp_point)
+
     try:
         result = subprocess.run(
             [script_path, command_name, current_word, previous_word],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             text=True,
-            check=False
+            check=False,
+            env=completer_env
         )
     except OSError:
         return []
@@ -239,7 +246,9 @@ def complete_command(text, state):
                     completer_script,
                     command_name,
                     token,
-                    previous_word
+                    previous_word,
+                    line_buffer,
+                    end_index
                 )
                 completion_cache_matches = sorted(
                     match[len(prefix_before_text):]
